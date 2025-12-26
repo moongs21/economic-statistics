@@ -327,14 +327,21 @@
                 
             } catch (error) {
                 console.error('데이터 로딩 오류:', error);
-                const errorMsg = `데이터를 불러오는 중 오류가 발생했습니다: ${error.message}`;
-                showError(errorMsg + '<br><small>브라우저 콘솔(F12)에서 자세한 오류를 확인하세요.</small>');
                 
-                // 샘플 데이터로 데모 표시
-                try {
+                // 502 Bad Gateway는 API 접근 불가를 의미
+                if (error.message.includes('502') || error.message.includes('Bad Gateway')) {
+                    console.warn('IMF API 접근 불가 - 샘플 데이터로 전환');
                     showSampleData(country, indicator, startYear, endYear);
-                } catch (sampleError) {
-                    console.error('샘플 데이터 표시 오류:', sampleError);
+                } else {
+                    const errorMsg = `데이터를 불러오는 중 오류가 발생했습니다: ${error.message}`;
+                    showError(errorMsg + '<br><small>브라우저 콘솔(F12)에서 자세한 오류를 확인하세요.</small>');
+                    
+                    // 샘플 데이터로 데모 표시
+                    try {
+                        showSampleData(country, indicator, startYear, endYear);
+                    } catch (sampleError) {
+                        console.error('샘플 데이터 표시 오류:', sampleError);
+                    }
                 }
             } finally {
                 // 항상 로딩 상태 해제
@@ -443,19 +450,39 @@
         }
 
         function showSampleData(country, indicator, startYear, endYear) {
-            // 샘플 데이터 생성 (API 접근 실패 시 데모용)
+            // 현실적인 샘플 데이터 생성 (API 접근 실패 시 데모용)
             const labels = [];
             const chartData = [];
             
+            // 지표별 현실적인 데이터 범위 설정
+            const sampleRanges = {
+                'NGDP_RPCH': { min: -2, max: 8 },      // GDP 성장률: -2% ~ 8%
+                'PCPIPCH': { min: 0, max: 5 },         // 인플레이션율: 0% ~ 5%
+                'LUR': { min: 2, max: 12 },            // 실업률: 2% ~ 12%
+                'NGDPD': { min: 1000000, max: 50000000 }, // GDP: 1조 ~ 50조
+                'BCA': { min: -5, max: 5 }             // 경상수지: -5% ~ 5%
+            };
+            
+            const range = sampleRanges[indicator] || { min: -2, max: 10 };
+            
+            // 연도별로 약간의 추세를 가진 데이터 생성
+            let baseValue = (range.min + range.max) / 2;
+            const trend = (Math.random() - 0.5) * 0.5; // 약간의 상승/하락 추세
+            
             for (let year = parseInt(startYear); year <= parseInt(endYear); year++) {
                 labels.push(year.toString());
-                // 랜덤 샘플 데이터 생성
-                chartData.push((Math.random() * 10 - 2).toFixed(2));
+                // 추세를 반영한 현실적인 데이터 생성
+                baseValue += trend + (Math.random() - 0.5) * (range.max - range.min) * 0.2;
+                baseValue = Math.max(range.min, Math.min(range.max, baseValue));
+                chartData.push(parseFloat(baseValue.toFixed(2)));
             }
 
             updateCharts(labels, chartData, getIndicatorName(indicator), country);
             
-            showError('⚠️ IMF API에서 데이터를 가져올 수 없어 샘플 데이터를 표시합니다. Netlify Function이 제대로 배포되었는지 확인하세요.');
+            const countryName = document.getElementById('country').selectedOptions[0].text;
+            showError(`⚠️ IMF API에서 데이터를 가져올 수 없어 <strong>샘플 데이터</strong>를 표시합니다.<br>
+                      <small>IMF API가 외부 호출을 제한하거나, Netlify Functions의 아웃바운드 연결이 제한되었을 수 있습니다.<br>
+                      실제 데이터를 사용하려면 IMF API 접근 권한이 필요하거나, 다른 공개 경제 데이터 API를 사용해야 합니다.</small>`);
         }
 
         function updateCharts(labels, data, indicatorName, country) {
