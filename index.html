@@ -251,7 +251,8 @@
             try {
                 // Netlify Function을 통해 IMF API 호출 (CORS 문제 해결)
                 // Netlify Functions는 /.netlify/functions/ 경로로 접근합니다
-               const functionUrl = `/.netlify/functions/imf-api-alt?...`;const functionUrl = `/.netlify/functions/imf-api-alt?...`;URIComponent(indicator)}&country=${encodeURIComponent(country)}&startYear=${encodeURIComponent(startYear)}&endYear=${encodeURIComponent(endYear)}`;
+                // Background Functions 사용 (타임아웃 문제 해결)
+                const functionUrl = `/.netlify/functions/imf-api-background?indicator=${encodeURIComponent(indicator)}&country=${encodeURIComponent(country)}&startYear=${encodeURIComponent(startYear)}&endYear=${encodeURIComponent(endYear)}`;
                 
                 console.log('Function URL:', functionUrl);
                 
