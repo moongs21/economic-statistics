@@ -250,23 +250,30 @@
 
             try {
                 // Netlify Function을 통해 IMF API 호출 (CORS 문제 해결)
-                const functionUrl = `/api/imf-api?indicator=${encodeURIComponent(indicator)}&country=${encodeURIComponent(country)}&startYear=${encodeURIComponent(startYear)}&endYear=${encodeURIComponent(endYear)}`;
+                // Netlify Functions는 /.netlify/functions/ 경로로 접근합니다
+                const functionUrl = `/.netlify/functions/imf-api?indicator=${encodeURIComponent(indicator)}&country=${encodeURIComponent(country)}&startYear=${encodeURIComponent(startYear)}&endYear=${encodeURIComponent(endYear)}`;
+                
+                console.log('Function URL:', functionUrl);
                 
                 const response = await fetch(functionUrl);
                 
                 if (!response.ok) {
                     const errorData = await response.json().catch(() => ({}));
-                    throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+                    const errorMessage = errorData.error || errorData.message || `HTTP error! status: ${response.status}`;
+                    console.error('API 오류:', errorMessage, errorData);
+                    throw new Error(errorMessage);
                 }
                 
                 const imfData = await response.json();
+                console.log('받은 데이터:', imfData);
 
                 // 데이터 처리
                 processData(imfData, country, indicator);
                 
             } catch (error) {
                 console.error('데이터 로딩 오류:', error);
-                showError('데이터를 불러오는 중 오류가 발생했습니다. IMF API에 직접 접근할 수 없을 수 있습니다. 브라우저 콘솔을 확인하세요.');
+                const errorMsg = `데이터를 불러오는 중 오류가 발생했습니다: ${error.message}`;
+                showError(errorMsg + '<br><small>브라우저 콘솔(F12)에서 자세한 오류를 확인하세요.</small>');
                 
                 // 샘플 데이터로 데모 표시
                 showSampleData(country, indicator, startYear, endYear);
@@ -278,28 +285,54 @@
 
         function processData(data, country, indicator) {
             try {
+                console.log('데이터 파싱 시작:', data);
+                
                 // IMF API 응답 구조 파싱
-                // IMF API는 보통 {values: {country: {year: value}}} 형태로 반환
+                // IMF API는 보통 {values: {indicator: {country: {year: value}}}} 형태로 반환
                 let values = {};
                 
-                // 다양한 응답 구조 처리
-                if (data.values && data.values[country]) {
-                    values = data.values[country];
+                // IMF API의 실제 응답 구조에 맞춰 파싱
+                if (data.values) {
+                    // {values: {NGDP_RPCH: {US: {2020: 2.3, 2021: 5.7}}}}
+                    if (data.values[indicator]) {
+                        if (data.values[indicator][country]) {
+                            values = data.values[indicator][country];
+                        } else {
+                            // 국가 코드가 다른 경우 시도
+                            const countryUpper = country.toUpperCase();
+                            if (data.values[indicator][countryUpper]) {
+                                values = data.values[indicator][countryUpper];
+                            }
+                        }
+                    }
                 } else if (data[country]) {
+                    // 직접 국가 코드로 접근
                     values = data[country];
-                } else if (data.values) {
-                    // values가 직접 연도별 데이터인 경우
-                    values = data.values;
+                } else if (data[indicator] && data[indicator][country]) {
+                    // {indicator: {country: {year: value}}}
+                    values = data[indicator][country];
                 } else if (Array.isArray(data)) {
                     // 배열 형태인 경우
                     const dataObj = {};
                     data.forEach(item => {
                         if (item.period && item.value !== undefined) {
-                            dataObj[item.period] = item.value;
+                            const year = parseInt(item.period.split('-')[0]);
+                            if (year) dataObj[year] = item.value;
                         }
                     });
                     values = dataObj;
+                } else {
+                    // 전체 데이터 구조 출력하여 디버깅
+                    console.warn('알 수 없는 데이터 구조:', data);
+                    // 마지막 시도: 전체 객체에서 연도 키 찾기
+                    for (const key in data) {
+                        if (!isNaN(key) && key.length === 4) {
+                            values[key] = data[key];
+                        }
+                    }
                 }
+                
+                console.log('추출된 값들:', values);
                 
                 const labels = [];
                 const chartData = [];
@@ -310,12 +343,29 @@
                 for (let year = startYear; year <= endYear; year++) {
                     labels.push(year.toString());
                     
-                    // 데이터가 있는 경우 해당 값 사용, 없으면 null
-                    const value = values[year] || values[year.toString()] || 
-                                 (values[`${year}-01-01`] !== undefined ? values[`${year}-01-01`] : null);
+                    // 다양한 형식의 키 시도
+                    let value = null;
+                    if (values[year] !== undefined && values[year] !== null) {
+                        value = values[year];
+                    } else if (values[year.toString()] !== undefined && values[year.toString()] !== null) {
+                        value = values[year.toString()];
+                    } else if (values[`${year}-01-01`] !== undefined) {
+                        value = values[`${year}-01-01`];
+                    }
                     
                     // 숫자로 변환 (문자열인 경우)
-                    chartData.push(value !== null ? parseFloat(value) : null);
+                    if (value !== null && value !== undefined) {
+                        const numValue = parseFloat(value);
+                        chartData.push(isNaN(numValue) ? null : numValue);
+                    } else {
+                        chartData.push(null);
+                    }
+                }
+
+                // 데이터가 모두 null인지 확인
+                const hasData = chartData.some(v => v !== null);
+                if (!hasData) {
+                    throw new Error('해당 기간에 데이터가 없습니다. 다른 연도 범위를 선택해보세요.');
                 }
 
                 // 차트 업데이트
@@ -323,8 +373,8 @@
                 
             } catch (error) {
                 console.error('데이터 처리 오류:', error);
-                console.error('받은 데이터:', data);
-                showError('데이터를 처리하는 중 오류가 발생했습니다. 응답 구조를 확인하세요.');
+                console.error('받은 데이터:', JSON.stringify(data, null, 2));
+                showError(`데이터를 처리하는 중 오류가 발생했습니다: ${error.message}<br><small>브라우저 콘솔(F12)에서 자세한 정보를 확인하세요.</small>`);
                 showSampleData(country, indicator, 
                     document.getElementById('startYear').value, 
                     document.getElementById('endYear').value);

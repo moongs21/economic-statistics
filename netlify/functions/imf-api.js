@@ -46,19 +46,26 @@ exports.handler = async (event, context) => {
         // IMF API URL 구성
         const imfApiUrl = `https://www.imf.org/external/datamapper/api/v1/${indicator}/${country}?periods=${startYear}-${endYear}`;
 
+        console.log('IMF API 호출:', imfApiUrl);
+
         // IMF API 호출
         const response = await fetch(imfApiUrl, {
             headers: {
                 'Accept': 'application/json',
-                'User-Agent': 'IMF-Economic-Dashboard/1.0'
+                'User-Agent': 'Mozilla/5.0 (compatible; IMF-Dashboard/1.0)'
             }
         });
 
+        console.log('IMF API 응답 상태:', response.status, response.statusText);
+
         if (!response.ok) {
-            throw new Error(`IMF API error: ${response.status} ${response.statusText}`);
+            const errorText = await response.text();
+            console.error('IMF API 오류 응답:', errorText);
+            throw new Error(`IMF API error: ${response.status} ${response.statusText}. ${errorText.substring(0, 200)}`);
         }
 
         const data = await response.json();
+        console.log('IMF API 데이터:', JSON.stringify(data).substring(0, 500));
 
         // 성공 응답 반환
         return {
