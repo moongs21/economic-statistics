@@ -54,9 +54,7 @@ exports.handler = async (event, context) => {
                 'LUR': 'SL.UEM.TOTL.ZS',              // 실업률 (%)
                 'NGDPD': 'NY.GDP.MKTP.CD',            // GDP (현재 가격, USD)
                 'GDP_PCAP': 'NY.GDP.PCAP.CD',         // 1인당 GDP (현재 가격, USD)
-                'BCA': 'BN.CAB.XOKA.GD.ZS',           // 경상수지 (GDP 대비 %)
-                'MIN_WAGE': 'SL.MIN.WAGE',            // 최저 임금 (USD) - ILO 데이터 기반
-                'MANUF_WAGE': 'SL.IND.EMPL.ZS'        // 제조업 평균 임금 (USD) - 제조업 고용률 기반
+                'BCA': 'BN.CAB.XOKA.GD.ZS'            // 경상수지 (GDP 대비 %)
             };
 
             // 국가 코드 매핑 (대부분 동일하지만 일부 확인 필요)

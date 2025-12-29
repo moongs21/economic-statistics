@@ -275,8 +275,6 @@
                     <option value="NGDPD">GDP (현재 가격, USD)</option>
                     <option value="GDP_PCAP">1인당 GDP (USD)</option>
                     <option value="BCA">경상수지 (GDP 대비 %)</option>
-                    <option value="MIN_WAGE">최저 임금 (USD)</option>
-                    <option value="MANUF_WAGE">제조업 평균 임금 (USD)</option>
                 </select>
             </div>
             <div class="control-group">
@@ -529,9 +527,7 @@
                 'LUR': { min: 2, max: 12 },            // 실업률: 2% ~ 12%
                 'NGDPD': { min: 1000000, max: 50000000 }, // GDP: 1조 ~ 50조
                 'GDP_PCAP': { min: 1000, max: 80000 }, // 1인당 GDP: 1,000 ~ 80,000 USD
-                'BCA': { min: -5, max: 5 },            // 경상수지: -5% ~ 5%
-                'MIN_WAGE': { min: 500, max: 3000 },   // 최저 임금: 500 ~ 3000 USD
-                'MANUF_WAGE': { min: 1000, max: 5000 } // 제조업 평균 임금: 1000 ~ 5000 USD
+                'BCA': { min: -5, max: 5 }             // 경상수지: -5% ~ 5%
             };
             
             const range = sampleRanges[indicator] || { min: -2, max: 10 };
@@ -638,9 +634,7 @@
                 'LUR': '실업률 (%)',
                 'NGDPD': 'GDP (USD)',
                 'GDP_PCAP': '1인당 GDP (USD)',
-                'BCA': '경상수지 (GDP 대비 %)',
-                'MIN_WAGE': '최저 임금 (USD)',
-                'MANUF_WAGE': '제조업 평균 임금 (USD)'
+                'BCA': '경상수지 (GDP 대비 %)'
             };
             return names[code] || code;
         }
