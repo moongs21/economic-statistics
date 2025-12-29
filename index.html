@@ -286,12 +286,16 @@
             .chart-wrapper {
                 padding: 12px;
                 min-height: 280px;
-                max-height: 280px;
-                overflow: hidden;
+                height: auto;
+                overflow: visible;
+                display: flex;
+                flex-direction: column;
             }
 
             .chart-wrapper canvas {
-                max-height: 240px;
+                max-width: 100%;
+                width: 100% !important;
+                height: 280px !important;
             }
 
             .chart-title {
@@ -655,8 +659,11 @@
                 },
                 options: {
                     responsive: true,
-                    maintainAspectRatio: true,
-                    aspectRatio: window.innerWidth <= 768 ? 1.5 : 2,
+                    maintainAspectRatio: window.innerWidth <= 768 ? false : true,
+                    aspectRatio: window.innerWidth <= 768 ? undefined : 2,
+                    layout: {
+                        padding: window.innerWidth <= 768 ? { bottom: 10 } : {}
+                    },
                     plugins: {
                         legend: {
                             display: true,
